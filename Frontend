@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CocoGuard: தென்னை நோய் கண்டறிதல்</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Font for better Tamil and English display -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Noto+Sans+Tamil:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        /* Apply Noto Sans Tamil for good readability in Tamil text */
+        body {
+            font-family: 'Noto Sans Tamil', 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0fdf4; /* Very light green background for general sections */
+            scroll-behavior: smooth; /* Smooth scrolling for navigation */
+        }
+        
+        /* --- Hero Section Styling --- */
+        #hero-section {
+            background-image: url('https://as1.ftcdn.net/v2/jpg/02/99/05/24/1000_F_299052492_E8MwfyTRnSMeDaqvMElHZpd7po4vq4Pv.jpg');
+            background-size: cover;
+            background-position: center;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Dark overlay for text readability, matching the user's screenshot */
+        #hero-overlay {
+            background-color: rgba(0, 0, 0, 0.5); /* Opacity set to 0.5 for good text contrast */
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        
+        /* --- Detection/Result Styling --- */
+        #dropzone {
+            /* Updated border style to match the user's image aesthetics */
+            border-style: dashed;
+            border-width: 2px;
+            border-color: #d1d5db; /* Light gray dashed border */
+            transition: all 0.3s ease-in-out;
+            border-radius: 12px; /* Subtle rounded corners */
+        }
+        #dropzone.drag-over {
+            border-color: #10b981; /* Green highlight on drag over */
+            background-color: #ecfdf5;
+            transform: scale(1.01);
+        }
+        .primary-button {
+            background-color: #10b981; /* Default Green */
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        .primary-button:hover {
+            background-color: #059669; /* Darker Green on hover */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Secondary button styling (Take Photo) */
+        .secondary-button {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            border: 1px solid #d1d5db;
+            transition: all 0.2s;
+        }
+        .secondary-button:hover {
+             background-color: #e5e7eb;
+        }
+
+        /* Result theme coloring */
+        .theme-healthy { border-color: #10b981; }
+        .theme-disease { border-color: #ef4444; }
+
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result-animated {
+            animation: slideInUp 0.5s ease-out;
+        }
+
+        /* Fixed Navigation Bar */
+        #navbar {
+            z-index: 50; /* Ensure it stays on top */
+        }
+
+        /* Content Padding offset for fixed nav */
+        #detection-section, #history-section, #about-section {
+            padding-top: 5rem; /* Space for fixed navbar */
+        }
+
+        /* Language Switcher Styling */
+        #lang-switcher {
+            cursor: pointer;
+            user-select: none;
+            border: 2px solid #059669;
+            border-radius: 9999px;
+            overflow: hidden;
+            display: inline-flex;
+        }
+        .lang-button {
+            padding: 4px 12px;
+            font-weight: 600;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .lang-button.active {
+            background-color: #059669;
+            color: white;
+        }
+        .lang-button:not(.active) {
+            color: #059669;
+            background-color: transparent;
+        }
+
+        /* Styling for the detail cards in the 'About Disease' section */
+        .detail-card {
+            border-left: 4px solid #34d399; /* Green border for section separation */
+            margin-bottom: 2rem;
+            padding-left: 1.5rem;
+        }
+        .detail-card h3 {
+            color: #059669;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        .detail-card p, .detail-card ul {
+            color: #4b5563;
+            line-height: 1.75;
+        }
+        .detail-card ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+        }
+
+    </style>
+</head>
+<body class="selection:bg-green-100 selection:text-green-800">
+
+    <!-- 1. Fixed Navigation Bar (Header) -->
+    <nav id="navbar" class="fixed w-full bg-white bg-opacity-95 shadow-lg backdrop-blur-sm top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="#hero-section" class="flex items-center text-2xl font-black text-[#059669]">
+                    <i class="fas fa-leaf mr-2 text-3xl"></i> CocoGuard
+                </a>
+
+                <!-- Desktop Menu -->
+                <div class="flex items-center space-x-4 sm:space-x-8">
+                    <div class="hidden sm:flex sm:space-x-8">
+                        <a href="#hero-section" id="nav-home" class="nav-link text-gray-900 hover:text-[#059669] px-3 py-2 rounded-md text-sm font-medium transition duration-150">முகப்பு</a>
+                        <a href="#detection-section" id="nav-detect" class="nav-link text-gray-900 hover:text-[#059669] px-3 py-2 rounded-md text-sm font-medium transition duration-150">கண்டறிதல்</a>
+                        <a href="#history-section" id="nav-history" class="nav-link text-gray-900 hover:text-[#059669] px-3 py-2 rounded-md text-sm font-medium transition duration-150">வரலாறு</a>
+                        <a href="#about-section" id="nav-about" class="nav-link text-gray-900 hover:text-[#059669] px-3 py-2 rounded-md text-sm font-medium transition duration-150">நோய் பற்றி</a>
+                    </div>
+                    
+                    <!-- Language Selector -->
+                    <div id="lang-switcher" class="ml-4">
+                        <span id="lang-ta" class="lang-button" data-lang="ta" onclick="setLanguage('ta')">TA</span>
+                        <span id="lang-en" class="lang-button active" data-lang="en" onclick="setLanguage('en')">EN</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. Hero Section (Image Mockup) -->
+    <section id="hero-section" class="flex items-center justify-center text-white">
+        <div id="hero-overlay"></div>
+        <div class="relative z-10 max-w-5xl mx-auto p-8 text-center">
+            <!-- IMPORTANT: Changed leading-tight to leading-normal for better Tamil font rendering (to avoid cropping/overlapping) -->
+            <h1 id="hero-title" class="text-4xl font-bold">Protect Your Coconut Crops</h1>
+            </h1>
+            <p id="hero-subtitle" class="text-xl sm:text-2xl font-medium mb-10 max-w-xl mx-auto">
+                AI-powered analysis in seconds. Upload a photo, get instant results and treatment recommendations.
+            </p>
+
+            <!-- Feature Highlights Section -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 mb-12 text-white text-center">
+                <!-- Feature 1: AI Detection -->
+                <div class="p-6 rounded-2xl bg-white bg-opacity-10 backdrop-blur-sm border-2 border-green-200 border-opacity-30 transition hover:bg-opacity-20 shadow-2xl transform hover:scale-[1.02]">
+                    <i class="fas fa-brain text-4xl text-green-300 mb-3"></i>
+                    <h4 id="feature-1-title" class="text-xl font-bold mb-2">AI-Powered Detection</h4>
+                    <p id="feature-1-desc" class="text-sm text-gray-200">Instant and accurate identification of coconut diseases.</p>
+                </div>
+                <!-- Feature 2: Instant Remedies -->
+                <div class="p-6 rounded-2xl bg-white bg-opacity-10 backdrop-blur-sm border-2 border-green-200 border-opacity-30 transition hover:bg-opacity-20 shadow-2xl transform hover:scale-[1.02]">
+                    <i class="fas fa-notes-medical text-4xl text-green-300 mb-3"></i>
+                    <h4 id="feature-2-title" class="text-xl font-bold mb-2">Instant Remedies</h4>
+                    <p id="feature-2-desc" class="text-sm text-gray-200">Get tailored, practical treatment plans for quick action.</p>
+                </div>
+                <!-- Feature 3: Simple & Fast -->
+                <div class="p-6 rounded-2xl bg-white bg-opacity-10 backdrop-blur-sm border-2 border-green-200 border-opacity-30 transition hover:bg-opacity-20 shadow-2xl transform hover:scale-[1.02]">
+                    <i class="fas fa-bolt text-4xl text-green-300 mb-3"></i>
+                    <h4 id="feature-3-title" class="text-xl font-bold mb-2">Simple & Fast</h4>
+                    <p id="feature-3-desc" class="text-sm text-gray-200">Just upload an image—no complicated setup required.</p>
+                </div>
+            </div>
+
+            <!-- CTA Button -->
+            <a href="#detection-section" id="hero-cta" class="inline-flex items-center primary-button text-white font-bold py-4 px-12 rounded-full text-xl shadow-2xl hover:bg-green-700 transition duration-300 transform hover:scale-105">
+                <i class="fas fa-leaf mr-3"></i> Start Free Analysis
+            </a>
+        </div>
+    </section>
+
+    <!-- 3. Detection Section (The core functionality) -->
+    <section id="detection-section" class="min-h-screen p-4 sm:p-12 flex flex-col items-center bg-white">
+        <div class="w-full max-w-4xl pt-8 pb-12">
+            
+            <!-- DETECTON HEADER TEXT -->
+            <h2 id="det-heading" class="text-4xl font-extrabold text-gray-800 mb-2 text-center">Disease Detection</h2>
+            <p id="det-subheading" class="text-center text-gray-500 mb-10 max-w-lg mx-auto">
+                Upload an image of coconut roots or tree to detect root wilt disease.
+            </p>
+
+            <!-- Image Upload Section - UPDATED TO MATCH USER'S IMAGE -->
+            <div id="upload-section" class="mb-8">
+                <!-- Dropzone Area -->
+                <div id="dropzone" class="flex flex-col items-center p-12 rounded-xl bg-white shadow-xl">
+                    <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="previewImage(event)">
+                    
+                    <!-- Upload Icon -->
+                    <div class="text-center mb-6">
+                        <i class="fas fa-arrow-up text-4xl text-green-500 bg-green-100 p-4 rounded-full border-2 border-green-200"></i>
+                    </div>
+
+                    <p id="dropzone-text-1" class="mt-2 text-gray-800 text-lg font-semibold text-center">
+                         Drop coconut root/tree image or click to browse
+                    </p>
+                    <p id="dropzone-text-2" class="text-sm text-gray-500 mt-1 mb-6 text-center">
+                        JPG, PNG • Max 10MB
+                    </p>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full justify-center">
+                        <button onclick="fileInput.click()" id="browse-files-button" class="primary-button text-white font-semibold py-3 px-8 rounded-lg flex items-center justify-center transition duration-300">
+                            <i class="fas fa-upload mr-2"></i> Browse Files
+                        </button>
+                        <button id="take-photo-button" class="secondary-button font-semibold py-3 px-8 rounded-lg flex items-center justify-center transition duration-300">
+                            <i class="fas fa-camera mr-2"></i> Take Photo
+                        </button>
+                    </div>
+
+                </div>
+                
+                <!-- Image Preview and Predict Button -->
+                <div id="image-preview-container" class="mt-6 hidden text-center p-4 bg-white rounded-xl shadow-lg border border-gray-200">
+                    <p id="fileNameDisplay" class="mb-3 text-sm font-medium text-gray-700 truncate"></p>
+                    <img id="image-preview" class="max-w-full max-h-72 h-auto mx-auto rounded-lg shadow-xl border-2 border-gray-100" alt="Image Preview">
+                    <button onclick="uploadImage()" id="predict-button" class="mt-6 primary-button text-white font-bold py-3 px-10 rounded-full text-lg shadow-xl hover:shadow-2xl transition duration-300 focus:outline-none focus:ring-4 focus:ring-[#059669] focus:ring-opacity-50">
+                        <i class="fas fa-microscope mr-2"></i> Detect with AI
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Section - Dynamic Color and Icon Based on Result -->
+            <div id="result-section" class="hidden p-8 mt-10 rounded-xl bg-white shadow-2xl result-animated border-l-8 theme-disease">
+                <h3 id="result-heading" class="text-3xl font-extrabold text-gray-800 mb-6 text-center">
+                    <i class="fas fa-vial mr-2"></i> Detection Result
+                </h3>
+                
+                <div class="space-y-6">
+                    <!-- Disease Name (Tamil & English) - Highlighted UX -->
+                    <div class="p-5 rounded-xl shadow-md border-t-4 border-gray-100 bg-red-50/50" id="disease-card">
+                        <p id="detected-disease-label" class="text-lg font-semibold text-gray-600 flex items-center mb-1">
+                            <i class="fas fa-stethoscope mr-3 text-2xl text-red-600"></i> Detected Disease:
+                        </p>
+                        <p id="disease-name-ta" class="text-4xl font-black text-red-800 mt-2 leading-tight"></p>
+                        <p id="disease-name-en" class="text-xl font-medium text-red-600 mt-1"></p>
+                    </div>
+
+                    <!-- Confidence Score -->
+                    <div class="bg-gray-100 p-4 rounded-xl shadow border-l-4 border-blue-400">
+                        <p id="confidence-label" class="text-lg font-semibold text-gray-600 flex items-center">
+                            <i class="fas fa-chart-line mr-3 text-xl text-blue-600"></i> Confidence Score:
+                        </p>
+                        <p id="confidence-score" class="text-2xl font-bold text-blue-700 mt-1"></p>
+                    </div>
+
+                    <!-- Remedy -->
+                    <div class="bg-yellow-50 p-5 rounded-xl shadow-lg border-l-4 border-amber-500">
+                        <p id="remedy-label" class="text-lg font-semibold text-gray-600 flex items-center">
+                            <i class="fas fa-prescription-bottle-alt mr-3 text-xl text-amber-600"></i> Recommended Treatment/Management:
+                        </p>
+                        <p id="remedy-ta" class="text-xl text-gray-800 mt-2 font-medium leading-relaxed"></p>
+                        <p id="remedy-en" class="text-base text-gray-500 mt-3 italic"></p>
+                    </div>
+                </div>
+                
+                <button onclick="resetApp()" id="reset-button" class="mt-8 w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-full text-lg hover:bg-gray-600 transition duration-200 shadow-md">
+                    <i class="fas fa-redo-alt mr-2"></i> Start Over
+                </button>
+            </div>
+            
+            <!-- Loading Spinner/Message -->
+            <div id="loading-spinner" class="hidden text-center mt-8 p-6 bg-white rounded-xl shadow-lg border border-gray-200">
+                <div class="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-[#059669] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+                    <span class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
+                </div>
+                <p id="loading-text" class="mt-3 text-xl font-medium text-gray-700">Detecting with AI... Please wait...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. History Section (Placeholder Content) -->
+    <section id="history-section" class="p-4 sm:p-12 bg-gray-100 min-h-[50vh] flex items-center justify-center">
+        <div class="max-w-4xl mx-auto text-center">
+            <!-- ADDED IDs HERE -->
+            <h2 id="his-heading" class="text-4xl font-extrabold text-gray-800 mb-4">History</h2>
+            <p id="his-content" class="text-lg text-gray-600">This section will store and display the history of your detection results. (Firestore integration can be added here).</p>
+        </div>
+    </section>
+
+    <!-- 5. ABOUT DISEASE SECTION - Now Dynamic -->
+    <section id="about-section" class="p-4 sm:p-12 bg-white min-h-[50vh] border-t border-gray-200">
+        <div class="max-w-4xl mx-auto">
+            <h2 id="abt-heading" class="text-4xl font-extrabold text-gray-800 mb-8 text-center"></h2>
+            
+            <!-- Content will be rendered here dynamically -->
+            <div id="rwd-about-content-container" class="space-y-6">
+                <!-- RWD HEADING -->
+                <h3 id="rwd-about-heading" class="text-3xl font-black text-gray-900 leading-snug"></h3>
+                
+                <!-- CAUSE & TRANSMISSION -->
+                <div class="detail-card">
+                    <h3 id="rwd-cause-title" class="text-2xl font-extrabold"></h3>
+                    <div id="rwd-cause-content" class="text-gray-700 text-lg"></div>
+                </div>
+
+                <!-- SYMPTOMS -->
+                <div class="detail-card">
+                    <h3 id="rwd-symptoms-title" class="text-2xl font-extrabold"></h3>
+                    <ul id="rwd-symptoms-content" class="text-gray-700 text-lg list-disc ml-6 space-y-2"></ul>
+                </div>
+
+                <!-- IMPACT & MANAGEMENT -->
+                <div class="detail-card">
+                    <h3 id="rwd-impact-title" class="text-2xl font-extrabold"></h3>
+                    <div id="rwd-impact-content" class="text-gray-700 text-lg"></div>
+                </div>
+                
+            </div>
+            
+        </div>
+    </section>
+    
+    <!-- Custom Alert/Message Box (Replaces alert()) -->
+    <div id="custom-alert-backdrop" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-100">
+            <h4 id="alert-title" class="text-xl font-bold text-red-600 flex items-center mb-4">
+                <i class="fas fa-exclamation-triangle mr-2"></i> எச்சரிக்கை (Attention)
+            </h4>
+            <p id="custom-alert-message" class="text-gray-700 mb-6"></p>
+            <button onclick="hideCustomAlert()" id="alert-ok-button" class="w-full bg-red-500 text-white font-bold py-2 rounded-lg hover:bg-red-600 transition duration-200">
+                சரி (OK)
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const imagePreview = document.getElementById('image-preview');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const resultSection = document.getElementById('result-section');
+        const diseaseCard = document.getElementById('disease-card');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const predictButton = document.getElementById('predict-button');
+        const customAlertBackdrop = document.getElementById('custom-alert-backdrop');
+        const customAlertMessage = document.getElementById('custom-alert-message');
+        const rwdContentContainer = document.getElementById('rwd-about-content-container');
+        
+        // Elements for dynamic language hiding/showing
+        const diseaseNameTa = document.getElementById('disease-name-ta');
+        const remedyTa = document.getElementById('remedy-ta');
+        
+        // Language elements (added IDs for easier update)
+        const langButtons = document.querySelectorAll('.lang-button');
+        
+        // --- Language Dictionary ---
+        const dictionary = {
+            'ta': {
+                'nav-home': 'முகப்பு',
+                'nav-detect': 'கண்டறிதல்',
+                'nav-history': 'வரலாறு',
+                'nav-about': 'நோய் பற்றி',
+                'hero-title': 'உங்கள் தென்னை பயிர்களைப் பாதுகாக்கவும்',
+                'hero-subtitle': 'AI மூலம் நொடிகளில் பகுப்பாய்வு. புகைப்படத்தைப் பதிவேற்றி, உடனடியாக முடிவுகளையும் சிகிச்சை பரிந்துரைகளையும் பெறுங்கள்.',
+                'hero-cta': 'இலவச ஆய்வைத் தொடங்கவும்',
+                'feature-1-title': 'AI மூலம் கண்டறிதல்',
+                'feature-1-desc': 'தென்னை நோய்களை உடனடியாகவும் துல்லியமாகவும் கண்டறியும்.',
+                'feature-2-title': 'உடனடி சிகிச்சை',
+                'feature-2-desc': 'விரைவான நடவடிக்கைக்கு ஏற்ற சிகிச்சை திட்டங்களைப் பெறுங்கள்.',
+                'feature-3-title': 'எளிமையானது மற்றும் வேகமானது',
+                'feature-3-desc': 'ஒரு படத்தைப் பதிவேற்றினால் போதும்—சிக்கலான அமைப்பு தேவையில்லை.',
+                'det-heading': 'நோய் கண்டறிதல் (Detection)',
+                'det-subheading': 'வேர் அழுகல் நோயைக் கண்டறிய தென்னை வேர்கள் அல்லது மரத்தின் ஒரு படத்தைப் பதிவேற்றவும்.',
+                'browse-files-button': 'கோப்புகளைத் தேர்க',
+                'take-photo-button': 'படம் எடுக்கவும்',
+                // Updated dropzone text to reflect the change in detection
+                'dropzone-text-1': 'தென்னை வேர்/மரம் படத்தை இழுத்து விடவும் அல்லது கிளிக் செய்யவும்',
+                'dropzone-text-2': 'JPG, PNG • அதிகபட்சம் 10MB',
+                'predict-button': 'AI மூலம் கண்டறிக',
+                'result-heading': 'கண்டறிதல் முடிவு',
+                'detected-disease-label': 'கண்டறியப்பட்ட நோய்:',
+                'confidence-label': 'துல்லியம் (Confidence Score):',
+                'remedy-label': 'பரிந்துரைக்கப்பட்ட சிகிச்சை/மேலாண்மை:',
+                'reset-button': 'மீண்டும் தொடங்கு',
+                'loading-text': 'AI மூலம் கண்டறியப்படுகிறது... காத்திருக்கவும்...',
+                'alert-title': 'எச்சரிக்கை',
+                'alert-ok-button': 'சரி',
+                'alert-upload-image': 'தயவுசெய்து முதலில் ஒரு படத்தைப் பதிவேற்றவும்.',
+                'alert-server-error': 'கண்டறிதல் சேவையகத்துடன் தொடர்பு கொள்ள முடியவில்லை. உங்கள் Flask Backend இயங்குகிறதா எனச் சரிபார்க்கவும்.',
+                
+                // --- History Content - Tamil (FIXED) ---
+                'his-heading': 'வரலாறு',
+                'his-content': 'இந்த பிரிவில் உங்கள் கண்டறிதல் முடிவுகளின் வரலாறு சேமிக்கப்படும் மற்றும் காண்பிக்கப்படும். (Firestore ஒருங்கிணைப்பு இங்கே சேர்க்கப்படலாம்).',
+
+                // --- Root Wilt Disease (RWD) Content - Tamil ---
+                'abt-heading': 'தென்னை நோய்கள் பற்றிய தகவல்',
+                'rwd-about-heading': 'தென்னை வேர் அழுகல் நோய் (Root Wilt Disease - RWD)',
+                
+                'rwd-cause-title': 'காரணம் மற்றும் பரவுதல்',
+                'rwd-cause-content': `
+                    <p class="mb-3"><span class="font-bold">நோய் காரணி:</span> ஃபைட்டோபிளாஸ்மாக்கள் (Phytoplasmas). இவை செல் சுவர் இல்லாத பாக்டீரியா வகையாகும். இந்த நோய் நிரந்தர மரணத்தை ஏற்படுத்தாவிட்டாலும், பயிரை பலவீனப்படுத்தும்.</p>
+                    <p><span class="font-bold">பரவுதல்:</span> இந்த நோய் பூச்சிகளால் பரவுகிறது, முக்கியமாக <span class="italic">தாவரத் தத்துப்பூச்சிகள் (Proutista moesta)</span> மற்றும் <span class="italic">லேஸ் விங் பக் (Stephanitis typica)</span> மூலம் பரவுகிறது. இந்தப் பூச்சிகள் ஃபைட்டோபிளாஸ்மாக்களை அவற்றின் உமிழ்நீர் சுரப்பிகள் மற்றும் ஃபுளோயம் திசுக்களில் கொண்டு செல்கின்றன.</p>
+                `,
+                'rwd-symptoms-title': 'முக்கிய அறிகுறிகள்',
+                'rwd-symptoms-content': [
+                    'இலைகள்: வாடுதல், சாய்ந்து தொங்குதல் மற்றும் தளர்வடைதல் ஆகியவை ஆரம்ப அறிகுறிகளாகும்.',
+                    'இலைப்பகுதி: மஞ்சள் நிறமாக மாறுதல் (வெளிறிப் போதல்), திசு இறப்பு (necrosis) மற்றும் துண்டு இலைகளில் வரித்தழும்பு ஏற்படுதல் ஆகியவை பொதுவான அறிகுறிகளாகும்.',
+                    'சுருள் இலைகள்: திறக்கப்படாத, வெளிர் மஞ்சள் நிற இலைத்துண்டுகள் ஒரு வகை இலை அழுகலுக்கு vulnerable.',
+                    'மேம்பட்ட நிலை: பிந்தைய நிலைகளில், முழு வேர் அமைப்பும் அழுக ஆரம்பிக்கலாம்.'
+                ],
+                'rwd-impact-title': 'தாக்கம் மற்றும் மேலாண்மை',
+                'rwd-impact-content': `
+                    <p class="mb-3"><span class="font-bold">தாக்கம்:</span> இந்த நோய் தென்னை மரங்களின் விளைச்சலைக் <span class="font-bold text-red-600">கணிசமாகக் குறைக்கிறது</span>.</p>
+                    <p><span class="font-bold">மேலாண்மை:</span> இதற்கு நிரந்தர தீர்வு இல்லாததால், நோய் பரவுவதைக் கட்டுப்படுத்துதல் மற்றும் பாதிக்கப்பட்ட மரங்களின் உற்பத்தித்திறனை அதிகரிப்பதில் கவனம் செலுத்தப்படுகிறது:</p>
+                    <ul class="list-disc ml-6 space-y-1">
+                        <li>கடுமையாகப் பாதிக்கப்பட்ட மரங்களை உடனடியாக அகற்றுதல்.</li>
+                        <li>நோய் எதிர்ப்புத் திறன் கொண்ட ரகங்களைப் பயன்படுத்துதல்.</li>
+                        <li>பொருத்தமான உரங்களைப் பயன்படுத்துதல்.</li>
+                        <li>பூச்சிக்கொல்லிகளைக் கொண்டு நோயைப் பரப்பும் பூச்சிகளைக் கட்டுப்படுத்துவது.</li>
+                    </ul>
+                `
+            },
+            'en': {
+                'nav-home': 'Home',
+                'nav-detect': 'Detect',
+                'nav-history': 'History',
+                'nav-about': 'About Disease',
+                'hero-title': 'Protect Your Coconut Crops',
+                'hero-subtitle': 'AI-powered analysis in seconds. Upload a photo, get instant results and treatment recommendations.',
+                'hero-cta': 'Start Free Analysis',
+                'feature-1-title': 'AI-Powered Detection',
+                'feature-1-desc': 'Instant and accurate identification of coconut diseases.',
+                'feature-2-title': 'Instant Remedies',
+                'feature-2-desc': 'Get tailored, practical treatment plans for quick action.',
+                'feature-3-title': 'Simple & Fast',
+                'feature-3-desc': 'Just upload an image—no complicated setup required.',
+                'det-heading': 'Disease Detection',
+                'det-subheading': 'Upload an image of coconut roots or tree to detect root wilt disease.',
+                'browse-files-button': 'Browse Files',
+                'take-photo-button': 'Take Photo',
+                // Updated dropzone text to reflect the change in detection
+                'dropzone-text-1': 'Drop coconut root/tree image or click to browse',
+                'dropzone-text-2': 'JPG, PNG • Max 10MB',
+                'predict-button': 'Detect with AI',
+                'result-heading': 'Detection Result',
+                'detected-disease-label': 'Detected Disease:',
+                'confidence-label': 'Confidence Score:',
+                'remedy-label': 'Recommended Treatment/Management:',
+                'reset-button': 'Start Over',
+                'loading-text': 'Detecting with AI... Please wait...',
+                'alert-title': 'Attention',
+                'alert-ok-button': 'OK',
+                'alert-upload-image': 'Please upload an image first.',
+                'alert-server-error': 'Could not connect to prediction server. Please check if your Flask Backend is running.',
+
+                // --- History Content - English (FIXED) ---
+                'his-heading': 'History',
+                'his-content': 'This section will store and display the history of your detection results. (Firestore integration can be added here).',
+
+                // --- Root Wilt Disease (RWD) Content - English ---
+                'abt-heading': 'Information About Coconut Diseases',
+                'rwd-about-heading': 'Coconut Root Wilt Disease (RWD)',
+                
+                'rwd-cause-title': 'Cause and Transmission',
+                'rwd-cause-content': `
+                    <p class="mb-3"><span class="font-bold">Causal Organism:</span> Phytoplasmas, a type of bacteria without a cell wall. This is a non-lethal but debilitating disease.</p>
+                    <p><span class="font-bold">Transmission:</span> The disease is transmitted by insects, primarily the <span class="italic">plant hopper (Proutista moesta)</span> and the <span class="italic">lace wing bug (Stephanitis typica)</span>. These insects carry the phytoplasmas in their salivary glands and phloem tissue.</p>
+                `,
+                'rwd-symptoms-title': 'Key Symptoms',
+                'rwd-symptoms-content': [
+                    'Leaves: Wilting, drooping, and flaccidity are early symptoms.',
+                    'Foliage: Typical signs include yellowing (paling), necrosis (tissue death), and a ribbing of the leaflets.',
+                    'Spindle leaves: The unopened, pale yellow leaflets are particularly vulnerable to a type of leaf rot.',
+                    'Advanced stage: In later stages, the entire root system may begin to decay.'
+                ],
+                'rwd-impact-title': 'Impact and Management',
+                'rwd-impact-content': `
+                    <p class="mb-3"><span class="font-bold">Impact:</span> The disease <span class="font-bold text-red-600">significantly reduces</span> the yield of coconut palms.</p>
+                    <p><span class="font-bold">Management:</span> Since there is no cure, management focuses on controlling the spread and increasing the productivity of infected palms:</p>
+                    <ul class="list-disc ml-6 space-y-1">
+                        <li>Removing severely affected trees.</li>
+                        <li>Using disease-resistant varieties.</li>
+                        <li>Applying appropriate fertilizers.</li>
+                        <li>Controlling the insect vectors with insecticides.</li>
+                    </ul>
+                `
+            }
+        };
+
+        // Variable for current language state
+        let currentLang = 'en'; // Initialize with the default HTML lang attribute
+
+        // Function to update all displayed texts based on the chosen language
+        function updateText(lang) {
+            currentLang = lang;
+            const texts = dictionary[lang];
+            
+            // 1. Update the main HTML language attribute
+            document.documentElement.lang = lang; // FIX 1: Ensure HTML tag changes
+
+            // 2. Update all elements using their IDs
+            for (const id in texts) {
+                const element = document.getElementById(id);
+                if (element) {
+                    // Special handling for elements containing HTML (like dropzone text and RWD content)
+                    if (id.startsWith('rwd-') && id.endsWith('-content')) {
+                        if (Array.isArray(texts[id])) {
+                            // Handle list content (Symptoms)
+                            element.innerHTML = texts[id].map(item => `<li>${item}</li>`).join('');
+                        } else {
+                            // Handle general paragraph content (Cause/Impact)
+                            element.innerHTML = texts[id];
+                        }
+                    } else if (id === 'dropzone-text-1' || id === 'det-subheading' || id === 'his-content') { // ADDED his-content HERE
+                         element.innerHTML = texts[id];
+                    } else {
+                        element.textContent = texts[id];
+                    }
+                }
+            }
+
+            // 3. Update button styles (Visual feedback)
+            langButtons.forEach(btn => {
+                if (btn.getAttribute('data-lang') === lang) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // 4. Update custom alert button/title
+            if (!customAlertBackdrop.classList.contains('hidden')) {
+                // If the alert is visible, update its text instantly
+                document.getElementById('alert-title').innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i> ${texts['alert-title']}`;
+                document.getElementById('alert-ok-button').textContent = texts['alert-ok-button'];
+            }
+            
+            // 5. Store preference in localStorage 
+            localStorage.setItem('cocoGuardLang', lang);
+
+            // 6. Adjust result field visibility (if results are shown)
+            updateResultLanguage(); 
+        }
+
+        // Function to hide or show Tamil result fields based on selected language
+        function updateResultLanguage() {
+             // Only hide/show if result section is visible
+             if (!resultSection.classList.contains('hidden')) {
+                 if (currentLang === 'en') {
+                     diseaseNameTa.classList.add('hidden');
+                     remedyTa.classList.add('hidden');
+                 } else {
+                     // Show Tamil fields if Tamil is selected
+                     diseaseNameTa.classList.remove('hidden');
+                     remedyTa.classList.remove('hidden');
+                 }
+             }
+        }
+
+
+        // Function called by language buttons
+        function setLanguage(lang) {
+            updateText(lang);
+        }
+
+        // --- Custom Alert/Message Box Functions (UX Improvement) ---
+        function showCustomAlert(key, fallbackMessage = '') {
+            const texts = dictionary[currentLang];
+            
+            // Handle dual language alert text for clarity
+            const enMessage = dictionary['en'][key];
+            const taMessage = dictionary['ta'][key];
+            
+            // Use the preferred language's message, followed by the secondary language in parentheses for user convenience
+            let message;
+            if (currentLang === 'ta') {
+                message = `${taMessage} (${enMessage})`;
+            } else {
+                 message = `${enMessage} (${taMessage})`;
+            }
+
+
+            document.getElementById('alert-title').innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i> ${texts['alert-title']}`;
+            document.getElementById('alert-ok-button').textContent = texts['alert-ok-button'];
+            customAlertMessage.textContent = message;
+            customAlertBackdrop.classList.remove('hidden');
+            customAlertBackdrop.classList.add('flex');
+        }
+
+        function hideCustomAlert() {
+            customAlertBackdrop.classList.add('hidden');
+            customAlertBackdrop.classList.remove('flex');
+        }
+
+        // --- Drag and Drop Event Listeners ---
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, unhighlight, false);
+        });
+
+        dropzone.addEventListener('drop', handleDrop, false);
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight() {
+            dropzone.classList.add('drag-over');
+        }
+
+        function unhighlight() {
+            dropzone.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            // Assign dropped file to input element
+            fileInput.files = files;
+            // Manually trigger the preview
+            previewImage({ target: fileInput });
+        }
+
+        // Image Preview Function
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                    fileNameDisplay.textContent = file.name;
+                    resultSection.classList.add('hidden'); // Hide results on new upload
+                    updateResultLanguage(); // Ensure fields are correctly hidden/shown if result was visible
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreviewContainer.classList.add('hidden');
+            }
+        }
+        
+        // --- UX Function: Apply theme based on result ---
+        function applyResultTheme(diseaseNameEn) {
+            // Reset previous themes
+            resultSection.classList.remove('theme-healthy', 'theme-disease');
+            diseaseCard.className = 'p-5 rounded-xl shadow-md border-t-4 border-gray-100'; // Reset card classes
+
+            let themeColor = 'text-red-800'; // Default to disease/red
+            let cardBg = 'bg-red-50/50';
+            let cardIcon = 'text-red-600';
+
+            if (diseaseNameEn === 'Healthy Images') {
+                resultSection.classList.add('theme-healthy');
+                themeColor = 'text-green-800';
+                cardBg = 'bg-green-50/50';
+                cardIcon = 'text-green-600';
+            } else {
+                // All diseases are treated as 'theme-disease' (Red border)
+                resultSection.classList.add('theme-disease');
+            }
+
+            // Apply card styling dynamically
+            diseaseCard.classList.add(cardBg);
+            document.getElementById('disease-name-ta').classList.add(themeColor);
+            document.getElementById('disease-name-en').classList.add(themeColor.replace('800', '600'));
+            
+            // Update icon colors in disease card
+            const iconElement = diseaseCard.querySelector('i'); // Get the icon element
+            if (iconElement) { // Check if the element exists before trying to set properties
+                iconElement.className = `fas fa-stethoscope mr-3 text-2xl ${cardIcon}`;
+            }
+        }
+
+
+        // Main Prediction Function
+        async function uploadImage() {
+            const file = fileInput.files[0];
+            if (!file) {
+                showCustomAlert('alert-upload-image');
+                return;
+            }
+
+            // Show loading spinner and disable button
+            predictButton.disabled = true;
+            predictButton.textContent = currentLang === 'ta' ? 'கண்டறிகிறது...' : 'Detecting...'; // Temporary loading text
+            loadingSpinner.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+            imagePreviewContainer.classList.add('opacity-50');
+
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // API Endpoint (Flask usually runs on port 5000. Using absolute path to resolve potential CORS/path issues)
+            const apiUrl = 'http://127.0.0.1:5000/predict';
+            
+            // Retry logic with exponential backoff (Max 4 retries)
+            const maxRetries = 4;
+            let attempt = 0;
+            let response;
+            let result = null;
+
+            while (attempt < maxRetries) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                         // Throw detailed error for better debugging
+                        const errorText = await response.text();
+                        throw new Error(`HTTP error! Status: ${response.status}. Response: ${errorText.substring(0, 100)}...`);
+                    }
+                    
+                    result = await response.json();
+                    break; // Success, exit loop
+
+                } catch (error) {
+                    console.error(`Attempt ${attempt + 1} failed:`, error.message);
+                    attempt++;
+                    if (attempt >= maxRetries) {
+                        // All retries failed
+                        showCustomAlert('alert-server-error');
+                        break;
+                    }
+                    // Exponential backoff
+                    const delay = Math.pow(2, attempt) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+
+            // Hide loading spinner and re-enable button
+            predictButton.disabled = false;
+            // Restore button text based on current language
+            predictButton.textContent = dictionary[currentLang]['predict-button']; 
+            loadingSpinner.classList.add('hidden');
+            imagePreviewContainer.classList.remove('opacity-50');
+
+
+            if (result) {
+                // Apply theme based on the result
+                applyResultTheme(result.disease_en);
+
+                // Update Result Section
+                document.getElementById('disease-name-ta').textContent = result.disease_ta;
+                document.getElementById('disease-name-en').textContent = result.disease_en;
+                document.getElementById('confidence-score').textContent = result.confidence;
+                document.getElementById('remedy-ta').textContent = result.remedy_ta;
+                document.getElementById('remedy-en').textContent = result.remedy_en;
+                
+                resultSection.classList.remove('hidden');
+                
+                // NEW: After getting the results, adjust visibility based on current language
+                updateResultLanguage(); 
+            }
+        }
+        
+        // Reset Function
+        function resetApp() {
+            fileInput.value = ''; // Clear file input
+            imagePreview.src = ''; // Clear image preview
+            imagePreviewContainer.classList.add('hidden'); // Hide preview section
+            resultSection.classList.add('hidden'); // Hide results
+            loadingSpinner.classList.add('hidden'); // Hide spinner
+            fileNameDisplay.textContent = ''; // Clear file name
+            predictButton.disabled = false;
+            // Restore button text based on current language
+            predictButton.textContent = dictionary[currentLang]['predict-button']; 
+
+            // Reset theme classes
+            resultSection.className = 'hidden p-8 mt-10 rounded-xl bg-white shadow-2xl result-animated border-l-8 theme-disease';
+            
+            // Ensure Tamil fields are visible again when resetting (in case TA is the default/current lang)
+            diseaseNameTa.classList.remove('hidden');
+            remedyTa.classList.remove('hidden');
+        }
+
+        // Initialize drag & drop styling and set initial language
+        window.onload = function() {
+            // Check for stored language preference or default to 'en'
+            const storedLang = localStorage.getItem('cocoGuardLang') || 'en';
+            // Use setLanguage for full initialization, which also updates the HTML lang attribute and button state
+            updateText(storedLang);
+
+            // Ensure alert is hidden on load
+            hideCustomAlert();
+        }
+    </script>
+</body>
+</html>
